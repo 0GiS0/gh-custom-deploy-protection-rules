@@ -1,0 +1,15 @@
+on:
+    push:
+        branches: [main]
+jobs:
+    test_gate:
+        name: Test Gate
+        runs-on: ubuntu-latest
+        environment: 
+            name: dev
+        steps:
+            - uses: actions/checkout@v4
+            - name: Approved
+              run: |
+                echo Gate passed! 👍🏻            
+        
