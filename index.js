@@ -80,7 +80,7 @@ app.post('/hook', async (req, res) => {
         case 'prod':
 
             // Check if high alerts are in main branch
-            let highAlertsInMain = highAlerts.filter(alert => alert.ref === 'main');
+            let highAlertsInMain = highAlerts.filter(alert => alert.most_recent_instance.ref === 'refs/heads/main');
 
             if (highAlertsInMain.length > 0) {
 
