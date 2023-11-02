@@ -130,3 +130,4 @@ dist
 .pnp.*
 code-scanning-alerts-resppnse.json
 deployment_request.json
+private-key.pem
