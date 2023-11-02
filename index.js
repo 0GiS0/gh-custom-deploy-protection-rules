@@ -24,7 +24,8 @@ app.post('/hook', async (req, res) => {
         repo = req.body.repository.name,
         deployment_callback_url = req.body.deployment_callback_url,
         runId = deployment_callback_url.match(/runs\/(\d+)\//)[1],
-        installationId = req.body.installation.id;
+        installationId = req.body.installation.id,
+        deploymentBranch = req.body.deployment.ref;
 
     console.log(`Action: ${action}`);
     console.log(`Environment: ${environment}`);
@@ -33,9 +34,9 @@ app.post('/hook', async (req, res) => {
     console.log(`Deployment callback URL: ${deployment_callback_url}`);
     console.log(`Run ID: ${runId}`);
     console.log(`Installation ID: ${installationId}`);
+    console.log(`Deployment branch: ${deploymentBranch}`);
 
     const octokit = await gh_app.getInstallationOctokit(installationId);
-
 
     let response = await octokit.request(`GET /repos/{owner}/{repo}/code-scanning/alerts`, {
         owner: owner,
@@ -45,11 +46,14 @@ app.post('/hook', async (req, res) => {
         }
     });
 
+    console.log(JSON.stringify(response));
+
     let alerts = response.data;
     // Check if some of the alerts is high and open
-    let highAlerts = alerts.filter(alert => alert.state === 'open' && alert.rule.severity === 'high');
+    let highAlerts = alerts.filter(alert => (alert.rule.severity === 'high' || alert.rule.severity === 'error') && alert.state === 'open');
 
     console.log(`Number of alerts: ${alerts.length}`);
+    console.log(`Number of high alerts open: ${highAlerts.length}`);
 
     switch (environment) {
         case 'dev':
@@ -69,24 +73,49 @@ app.post('/hook', async (req, res) => {
                 }
             });
 
-
             console.log(`Response from the deployment callback URL: ${res.status}`);
 
             break;
 
         case 'prod':
 
-            if (highAlerts.length > 0) {
-                console.log(`There are ${highAlerts.length} high alerts`);
+            // Check if high alerts are in main branch
+            let highAlertsInMain = highAlerts.filter(alert => alert.ref === 'main');
 
-                await fetch(deployment_callback_url, {
-                    method: 'POST',
+            if (highAlertsInMain.length > 0) {
+
+                const message = `There are ${highAlertsInMain.length} high alerts in the ${environment} environment in main branch. Deployment is rejected.`;
+
+                // Create a deployment status
+                let res = await octokit.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule', {
+                    owner: owner,
+                    repo: repo,
+                    run_id: runId,
+                    environment_name: environment,
+                    state: 'rejected',
+                    comment: message,
                     headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        state: 'rejected',
-                    })
+                        'X-GitHub-Api-Version': '2022-11-28'
+                    }
+                });
+
+                console.log(`Response from the deployment callback URL: ${res.status}`);
+            }
+            else {
+
+                const message = `Good news! There are no high alerts in the ${environment} environment in main branch. Deployment is approved.`;
+
+                // Create a deployment status
+                let res = await octokit.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule', {
+                    owner: owner,
+                    repo: repo,
+                    run_id: runId,
+                    environment_name: environment,
+                    state: 'approved',
+                    comment: message,
+                    headers: {
+                        'X-GitHub-Api-Version': '2022-11-28'
+                    }
                 });
             }
             break;

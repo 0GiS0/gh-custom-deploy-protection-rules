@@ -131,3 +131,6 @@ dist
 code-scanning-alerts-resppnse.json
 deployment_request.json
 private-key.pem
+alert.json
+.gitignore
+code-scanning.json
