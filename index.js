@@ -3,7 +3,9 @@ const express = require('express');
 const { Octokit, App } = require("octokit");
 
 const octokit = new Octokit({
-    auth: process.env.GH_TOKEN
+    // auth: process.env.GH_TOKEN
+    appId: process.env.GH_APP_ID,
+    privateKey: process.env.GH_PRIVATE_KEY,
 });
 
 const PORT = process.env.PORT || 3000;
@@ -14,22 +16,28 @@ app.use(express.json());
 
 app.post('/hook', async (req, res) => {
 
-    // console.log(`Received webhook: ${JSON.stringify(req.body)}`);
+    console.log(`Received webhook: ${JSON.stringify(req.body)}`);
 
     let action = req.body.action,
         environment = req.body.environment,
         owner = req.body.repository.owner.login,
         repo = req.body.repository.name,
-        deployment_callback_url = req.body.deployment_callback_url;
+        deployment_callback_url = req.body.deployment_callback_url,
+        //https://api.github.com/repos/0GiS0/gh-custom-deploy-protection-rules/actions/runs/6725675241/deployment_protection_rule
+        // Get the number between runs/ and /deployment_protection_rule
+        runId = deployment_callback_url.match(/runs\/(\d+)\//)[1],
+        installationId = req.body.installation.id;
 
     console.log(`Action: ${action}`);
     console.log(`Environment: ${environment}`);
     console.log(`Owner: ${owner}`);
     console.log(`Repository: ${repo}`);
     console.log(`Deployment callback URL: ${deployment_callback_url}`);
+    console.log(`Run ID: ${runId}`);
+    console.log(`Installation ID: ${installationId}`);
 
     let response = await octokit.request(`GET /repos/{owner}/{repo}/code-scanning/alerts`, {
-        owner: '0gis0',
+        owner: owner,
         repo: repo,
         headers: {
             'X-GitHub-Api-Version': '2022-11-28'
@@ -47,16 +55,32 @@ app.post('/hook', async (req, res) => {
             console.log(`Pass the deployment`);
 
             //Send POST request to the deployment callback URL
-            let res = await fetch(deployment_callback_url, {
-                method: 'POST',
-                headers: {                    
-                    'Content-Type': 'application/json'
+            // let res = await fetch(deployment_callback_url, {
+            //     method: 'POST',
+            //     headers: {                    
+            //         'Content-Type': 'application/json'
 
-                },
-                body: JSON.stringify({
-                    state: 'approved',
-                })
+            //     },
+            //     body: JSON.stringify({
+            //         state: 'approved',
+            //     })
+            // });
+            // Generate install token
+            const octo = await app.getInstallationOctokit(installationId);
+
+            // Create a deployment status
+            let res = await octo.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule', {
+                owner: owner,
+                repo: repo,
+                run_id: runId,
+                environment_name: environment,
+                state: 'approved',
+                comment: 'All health checks passed.',
+                headers: {
+                    'X-GitHub-Api-Version': '2022-11-28'
+                }
             });
+
 
             console.log(`Response from the deployment callback URL: ${res.status}`);
 
