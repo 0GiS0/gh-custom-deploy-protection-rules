@@ -16,8 +16,6 @@ app.use(express.json());
 
 app.post('/hook', async (req, res) => {
 
-    // console.log(`Received webhook: ${JSON.stringify(req.body)}`);
-
     let action = req.body.action,
         environment = req.body.environment,
         owner = req.body.repository.owner.login,
@@ -46,10 +44,9 @@ app.post('/hook', async (req, res) => {
         }
     });
 
-    // console.log(JSON.stringify(response));
-
     let alerts = response.data;
-    // Check if some of the alerts is high and open
+    
+    // Check if some of the alerts are high and open
     let highAlerts = alerts.filter(alert => (alert.rule.severity === 'high' || alert.rule.severity === 'error') && alert.state === 'open');
 
     console.log(`Number of alerts: ${alerts.length}`);
@@ -62,22 +59,6 @@ app.post('/hook', async (req, res) => {
         case 'dev':
 
             message = `There are ${highAlerts.length} high alerts in the ${environment} environment. But we are going to deploy anyway.`;
-
-            // // Create a deployment status
-            // let res = await octokit.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule', {
-            //     owner: owner,
-            //     repo: repo,
-            //     run_id: runId,
-            //     environment_name: environment,
-            //     state: 'approved',
-            //     comment: message,
-            //     headers: {
-            //         'X-GitHub-Api-Version': '2022-11-28'
-            //     }
-            // });
-
-            // console.log(`Response from the deployment callback URL: ${res.status}`);
-
             break;
 
         case 'prod':
@@ -89,37 +70,10 @@ app.post('/hook', async (req, res) => {
 
                 message = `There are ${highAlertsInMain.length} high alerts in the ${environment} environment in main branch. Deployment is rejected.`;
                 status = 'rejected';
-                // // Create a deployment status
-                // let res = await octokit.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule', {
-                //     owner: owner,
-                //     repo: repo,
-                //     run_id: runId,
-                //     environment_name: environment,
-                //     state: 'rejected',
-                //     comment: message,
-                //     headers: {
-                //         'X-GitHub-Api-Version': '2022-11-28'
-                //     }
-                // });
-
-                // console.log(`Response from the deployment callback URL: ${res.status}`);
             }
             else {
 
                 message = `Good news! There are no high alerts in the ${environment} environment in main branch. Deployment is approved.`;
-
-                // Create a deployment status
-                // let res = await octokit.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule', {
-                //     owner: owner,
-                //     repo: repo,
-                //     run_id: runId,
-                //     environment_name: environment,
-                //     state: 'approved',
-                //     comment: message,
-                //     headers: {
-                //         'X-GitHub-Api-Version': '2022-11-28'
-                //     }
-                // });
             }
             break;
     }
