@@ -61,7 +61,7 @@ app.post('/hook', async (req, res) => {
     switch (environment) {
         case 'dev':
 
-            const message = `There are ${highAlerts.length} high alerts in the ${environment} environment. But we are going to deploy anyway.`;
+            message = `There are ${highAlerts.length} high alerts in the ${environment} environment. But we are going to deploy anyway.`;
 
             // // Create a deployment status
             // let res = await octokit.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule', {
@@ -87,7 +87,7 @@ app.post('/hook', async (req, res) => {
 
             if (highAlertsInMain.length > 0) {
 
-                const message = `There are ${highAlertsInMain.length} high alerts in the ${environment} environment in main branch. Deployment is rejected.`;
+                message = `There are ${highAlertsInMain.length} high alerts in the ${environment} environment in main branch. Deployment is rejected.`;
                 status = 'rejected';
                 // // Create a deployment status
                 // let res = await octokit.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule', {
@@ -106,7 +106,7 @@ app.post('/hook', async (req, res) => {
             }
             else {
 
-                const message = `Good news! There are no high alerts in the ${environment} environment in main branch. Deployment is approved.`;
+                message = `Good news! There are no high alerts in the ${environment} environment in main branch. Deployment is approved.`;
 
                 // Create a deployment status
                 // let res = await octokit.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule', {
