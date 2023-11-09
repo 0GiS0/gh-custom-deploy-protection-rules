@@ -125,7 +125,7 @@ app.post('/hook', async (req, res) => {
     }
 
     // Create a deployment status
-    let res = await octokit.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule', {
+    response = await octokit.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule', {
         owner: owner,
         repo: repo,
         run_id: runId,
@@ -137,7 +137,7 @@ app.post('/hook', async (req, res) => {
         }
     });
 
-    console.log(`Response from the deployment callback URL: ${res.status}`);
+    console.log(`Response from the deployment callback URL: ${response.status}`);
 
     res.status(200).send('OK');
 
