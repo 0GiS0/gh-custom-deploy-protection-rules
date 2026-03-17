@@ -1,8 +1,11 @@
 const fs = require('fs');
 
 function getInput(name, { required = false } = {}) {
-    const envName = `INPUT_${name.replace(/ /g, '_').replace(/-/g, '_').toUpperCase()}`;
-    const value = process.env[envName];
+    const envNames = [
+        `INPUT_${name.replace(/ /g, '_').toUpperCase()}`,
+        `INPUT_${name.replace(/ /g, '_').replace(/-/g, '_').toUpperCase()}`,
+    ];
+    const value = envNames.map((envName) => process.env[envName]).find(Boolean);
 
     if (required && !value) {
         throw new Error(`Missing required input: ${name}`);
