@@ -134,3 +134,5 @@ private-key.pem
 alert.json
 .gitignore
 code-scanning.json
+
+*.pem

@@ -5,10 +5,11 @@ const express = require('express'),
 
 const gh_app = new App({
     appId: process.env.GH_APP_ID,
-    privateKey: fs.readFileSync("private-key.pem"),
+    privateKey: fs.readFileSync("private-key.pem", "utf8"),
 });
 
 const PORT = process.env.PORT || 3000;
+const GITHUB_API_VERSION = '2026-03-10';
 
 const app = express();
 
@@ -40,7 +41,7 @@ app.post('/hook', async (req, res) => {
         owner: owner,
         repo: repo,
         headers: {
-            'X-GitHub-Api-Version': '2022-11-28'
+            'X-GitHub-Api-Version': GITHUB_API_VERSION
         }
     });
 
@@ -87,7 +88,7 @@ app.post('/hook', async (req, res) => {
         state: status,
         comment: message,
         headers: {
-            'X-GitHub-Api-Version': '2022-11-28'
+            'X-GitHub-Api-Version': GITHUB_API_VERSION
         }
     });
 

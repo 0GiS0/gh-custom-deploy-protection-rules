@@ -1,6 +1,7 @@
 name: 🚀 Custom Deployment Protection Rules Demo
 
 on:
+  workflow_dispatch:
     push:
         branches: [main]
 jobs:
@@ -11,7 +12,7 @@ jobs:
             name: dev
         steps:
             - name: 📥 Checkout code
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
             - name: ✅ Approved
               run: |
                 echo Gate passed! 👍🏻
@@ -23,7 +24,7 @@ jobs:
             name: prod
         steps:
             - name: 📥 Checkout code
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
             - name: ✅ Approved
               run: |
                 echo Gate passed! 👍🏻            
