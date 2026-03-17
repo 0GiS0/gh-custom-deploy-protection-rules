@@ -1,26 +1,30 @@
+name: 🚀 Custom Deployment Protection Rules Demo
+
 on:
     push:
         branches: [main]
 jobs:
     test_gate_in_dev:
-        name: Test Gate in Dev
+        name: 🧪 Test Gate in Dev
         runs-on: ubuntu-latest
         environment: 
             name: dev
         steps:
-            - uses: actions/checkout@v4
-            - name: Approved
+            - name: 📥 Checkout code
+              uses: actions/checkout@v4
+            - name: ✅ Approved
               run: |
                 echo Gate passed! 👍🏻
     test_gate_in_prod:
-        name: Test Gate in Prod
+        name: 🏭 Test Gate in Prod
         runs-on: ubuntu-latest
         needs: [test_gate_in_dev]
         environment: 
             name: prod
         steps:
-            - uses: actions/checkout@v4
-            - name: Approved
+            - name: 📥 Checkout code
+              uses: actions/checkout@v4
+            - name: ✅ Approved
               run: |
                 echo Gate passed! 👍🏻            
         
