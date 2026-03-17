@@ -1,0 +1,30 @@
+name: Security Overview Summary
+description: Generate a GitHub job summary for open code scanning alerts.
+
+inputs:
+  github-token:
+    description: GitHub token used to query the REST API.
+    required: true
+  owner:
+    description: Repository owner.
+    required: true
+  repo:
+    description: Repository name.
+    required: true
+  api-version:
+    description: GitHub REST API version header value.
+    required: false
+    default: 2026-03-10
+  security-dashboard-url:
+    description: URL to the repository code scanning dashboard.
+    required: true
+
+outputs:
+  open_high_total:
+    description: Number of open blocking alerts across the repository.
+  open_high_main:
+    description: Number of open blocking alerts on main.
+
+runs:
+  using: node20
+  main: index.js

@@ -11,6 +11,16 @@ const gh_app = new App({
 const PORT = process.env.PORT || 3000;
 const GITHUB_API_VERSION = '2026-03-10';
 
+function isBlockingAlert(alert) {
+    const securitySeverity = alert.rule.security_severity_level;
+
+    if (securitySeverity) {
+        return ['critical', 'high'].includes(securitySeverity);
+    }
+
+    return alert.rule.severity === 'high';
+}
+
 const app = express();
 
 app.use(express.json());
@@ -48,11 +58,11 @@ app.post('/hook', async (req, res) => {
 
     let alerts = response.data;
     
-    // Check if some of the alerts are high and open
-    let highAlerts = alerts.filter(alert => (alert.rule.severity === 'high' || alert.rule.severity === 'error') && alert.state === 'open');
+    // Block only critical/high security alerts.
+    let blockingAlerts = alerts.filter(alert => alert.state === 'open' && isBlockingAlert(alert));
 
     console.log(`Number of alerts: ${alerts.length}`);
-    console.log(`Number of high alerts open: ${highAlerts.length}`);
+    console.log(`Number of blocking alerts open: ${blockingAlerts.length}`);
 
     let status = 'approved';
     let message = '';
@@ -60,22 +70,22 @@ app.post('/hook', async (req, res) => {
     switch (environment) {
         case 'dev':
 
-            message = `⚠️ There are ${highAlerts.length} high alerts in the ${environment} environment. 🚀 We are going to deploy anyway. 🔎 Review alerts: ${securityDashboardUrl}`;
+            message = `⚠️ There are ${blockingAlerts.length} open critical/high security alerts in the ${environment} environment. 🚀 We are going to deploy anyway. 🔎 Review alerts: ${securityDashboardUrl}`;
             break;
 
         case 'prod':
 
             // Check if high alerts are in main branch
-            let highAlertsInMain = highAlerts.filter(alert => alert.most_recent_instance.ref === 'refs/heads/main');
+            let blockingAlertsInMain = blockingAlerts.filter(alert => alert.most_recent_instance.ref === 'refs/heads/main');
 
-            if (highAlertsInMain.length > 0) {
+            if (blockingAlertsInMain.length > 0) {
 
-                message = `🛑 There are ${highAlertsInMain.length} high alerts in the ${environment} environment on the main branch. Deployment is rejected. 🔎 Review alerts: ${securityDashboardUrl}`;
+                message = `🛑 There are ${blockingAlertsInMain.length} open critical/high security alerts in the ${environment} environment on the main branch. Deployment is rejected. 🔎 Review alerts: ${securityDashboardUrl}`;
                 status = 'rejected';
             }
             else {
 
-                message = `✅ Good news! There are no high alerts in the ${environment} environment on the main branch. Deployment is approved. 🔎 Review alerts: ${securityDashboardUrl}`;
+                message = `✅ Good news! There are no open critical/high security alerts in the ${environment} environment on the main branch. Deployment is approved. 🔎 Review alerts: ${securityDashboardUrl}`;
             }
             break;
     }
