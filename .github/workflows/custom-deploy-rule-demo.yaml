@@ -4,10 +4,75 @@ on:
   workflow_dispatch:
     push:
         branches: [main]
+
+permissions:
+    contents: read
+    security-events: read
+
 jobs:
+    security_overview:
+        name: 🔎 Security Overview
+        runs-on: ubuntu-latest
+        outputs:
+            open_high_total: ${{ steps.summarize.outputs.open_high_total }}
+            open_high_main: ${{ steps.summarize.outputs.open_high_main }}
+        steps:
+            - name: 📊 Generate GitHub Summary
+              id: summarize
+              env:
+                GH_TOKEN: ${{ github.token }}
+                OWNER: ${{ github.repository_owner }}
+                REPO: ${{ github.event.repository.name }}
+                SECURITY_DASHBOARD_URL: https://github.com/${{ github.repository }}/security/code-scanning
+              run: |
+                gh api \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "X-GitHub-Api-Version: 2026-03-10" \
+                  "/repos/$OWNER/$REPO/code-scanning/alerts?state=open&per_page=100" > alerts.json
+
+                node <<'EOF'
+                const fs = require('fs');
+
+                const alerts = JSON.parse(fs.readFileSync('alerts.json', 'utf8'));
+                const highAlerts = alerts.filter((alert) => ['high', 'error'].includes(alert.rule.severity) && alert.state === 'open');
+                const highAlertsInMain = highAlerts.filter((alert) => alert.most_recent_instance?.ref === 'refs/heads/main');
+                const topAlerts = highAlerts.slice(0, 5);
+
+                const lines = [
+                  '# Deployment Security Overview',
+                  '',
+                  `Open alerts analyzed: ${alerts.length}`,
+                  '',
+                  '| Environment | Expected result | Details |',
+                  '| --- | --- | --- |',
+                  `| dev | ✅ Approved | ${highAlerts.length} open high/error alerts. Deployment continues in dev. |`,
+                  `| prod | ${highAlertsInMain.length > 0 ? '🛑 Rejected' : '✅ Approved'} | ${highAlertsInMain.length} open high/error alerts on main. |`,
+                  '',
+                ];
+
+                if (topAlerts.length > 0) {
+                  lines.push('## Top open high alerts');
+                  lines.push('');
+                  lines.push('| Rule | Severity | Ref |');
+                  lines.push('| --- | --- | --- |');
+
+                  for (const alert of topAlerts) {
+                    lines.push(`| ${alert.rule.description || alert.rule.name || alert.rule.id} | ${alert.rule.severity} | ${alert.most_recent_instance?.ref || 'n/a'} |`);
+                  }
+
+                  lines.push('');
+                }
+
+                lines.push(`Security dashboard: ${process.env.SECURITY_DASHBOARD_URL}`);
+
+                fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`);
+                fs.appendFileSync(process.env.GITHUB_OUTPUT, `open_high_total=${highAlerts.length}\nopen_high_main=${highAlertsInMain.length}\n`);
+                EOF
+
     test_gate_in_dev:
         name: 🧪 Test Gate in Dev
         runs-on: ubuntu-latest
+        needs: [security_overview]
         environment: 
             name: dev
         steps:
@@ -19,7 +84,7 @@ jobs:
     test_gate_in_prod:
         name: 🏭 Test Gate in Prod
         runs-on: ubuntu-latest
-        needs: [test_gate_in_dev]
+        needs: [security_overview, test_gate_in_dev]
         environment: 
             name: prod
         steps:

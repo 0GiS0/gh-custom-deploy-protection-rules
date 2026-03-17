@@ -21,6 +21,7 @@ app.post('/hook', async (req, res) => {
         environment = req.body.environment,
         owner = req.body.repository.owner.login,
         repo = req.body.repository.name,
+        securityDashboardUrl = `https://github.com/${req.body.repository.full_name}/security/code-scanning`,
         deployment_callback_url = req.body.deployment_callback_url,
         runId = deployment_callback_url.match(/runs\/(\d+)\//)[1],
         installationId = req.body.installation.id,
@@ -59,7 +60,7 @@ app.post('/hook', async (req, res) => {
     switch (environment) {
         case 'dev':
 
-            message = `There are ${highAlerts.length} high alerts in the ${environment} environment. But we are going to deploy anyway.`;
+            message = `⚠️ There are ${highAlerts.length} high alerts in the ${environment} environment. 🚀 We are going to deploy anyway. 🔎 Review alerts: ${securityDashboardUrl}`;
             break;
 
         case 'prod':
@@ -69,12 +70,12 @@ app.post('/hook', async (req, res) => {
 
             if (highAlertsInMain.length > 0) {
 
-                message = `There are ${highAlertsInMain.length} high alerts in the ${environment} environment in main branch. Deployment is rejected.`;
+                message = `🛑 There are ${highAlertsInMain.length} high alerts in the ${environment} environment on the main branch. Deployment is rejected. 🔎 Review alerts: ${securityDashboardUrl}`;
                 status = 'rejected';
             }
             else {
 
-                message = `Good news! There are no high alerts in the ${environment} environment in main branch. Deployment is approved.`;
+                message = `✅ Good news! There are no high alerts in the ${environment} environment on the main branch. Deployment is approved. 🔎 Review alerts: ${securityDashboardUrl}`;
             }
             break;
     }
